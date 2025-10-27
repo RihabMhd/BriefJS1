@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * @returns {Promise<void>}
      */
     const loadAllJobs = async () => {
-        // TODO: Implement data loading logic
+        +// TODO: Implement data loading logic
         // 1. Check if jobs exist in localStorage
         // 2. If not, fetch from data.json
         // 3. Save to localStorage for persistence
