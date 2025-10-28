@@ -134,12 +134,12 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     const saveAllJobs = () => {
         // TODO: Implement localStorage save functionality
-            try {
-                localStorage.setItem('allJobsData', JSON.stringify(allJobs));
-            } catch (error) {
-                console.error('Error saving to localStorage:', error);
-            }
-        };
+        try {
+            localStorage.setItem('allJobsData', JSON.stringify(allJobs));
+        } catch (error) {
+            console.error('Error saving to localStorage:', error);
+        }
+    };
 
     // ------------------------------------
     // --- FORM VALIDATION ---
@@ -156,6 +156,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Add error class to input
         // 2. Find error span element
         // 3. Display error message
+        input.classList.add('error');
+        const errorSpan = input.nextElementSibling;
+        if (errorSpan && errorSpan.classList.contains('form-error')) {
+            errorSpan.textContent = message;
+        }
     };
 
     /**
@@ -167,6 +172,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // TODO: Implement error clearing logic
         // 1. Remove error classes from inputs
         // 2. Clear error messages
+        const inputs = form.querySelectorAll('input, textarea');
+        inputs.forEach(input => {
+            input.classList.remove('error');
+            const err = input.nextElementSibling;
+            if (err && err.classList.contains('form-error')) {
+                err.textContent = '';
+            }
+        });
     };
 
     /**
@@ -179,7 +192,34 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Check required fields
         // 2. Show errors if invalid
         // 3. Return validation result
-        return true;
+        let isValid = true;
+        const name = profileNameInput.value.trim();
+        const position = profilePositionInput.value.trim();
+
+        if (!name) {
+            showError(profileNameInput, 'Le nom complet est requis');
+            isValid = false;
+        } else if (name.length < 3) {
+            showError(profileNameInput, 'Le nom doit contenir au moins 3 caractères');
+            isValid = false;
+        } else if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(name)) {
+            showError(profileNameInput, 'Le nom ne peut contenir que des lettres');
+            isValid = false;
+        } else {
+            clearErrors(profileNameInput);
+        }
+
+        if (!position) {
+            showError(profilePositionInput, 'Le poste souhaité est requis');
+            isValid = false;
+        } else if (position.length < 3) {
+            showError(profilePositionInput, 'Le poste doit contenir au moins 3 caractères');
+            isValid = false;
+        } else {
+            clearErrors(profilePositionInput);
+        }
+
+        return isValid;
     };
 
     /**
@@ -192,7 +232,76 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Validate all required fields
         // 2. Validate URL format for logo
         // 3. Show appropriate error messages
-        return true;
+        let isValid = true;
+
+        const company = jobCompanyInput.value.trim();
+        const position = jobPositionInput.value.trim();
+        const contract = jobContractInput.value.trim();
+        const location = jobLocationInput.value.trim();
+        const role = jobRoleInput.value.trim();
+        const level = jobLevelInput.value.trim();
+        const skills = jobSkillsInput.value.trim();
+        const description = jobDescriptionInput.value.trim();
+
+        // Check all required fields
+        if (!company) {
+            showError(jobCompanyInput, 'Le nom de l\'entreprise est requis');
+            isValid = false;
+        } else {
+            clearErrors(jobCompanyInput);
+        }
+
+        if (!position) {
+            showError(jobPositionInput, 'Le poste est requis');
+            isValid = false;
+        } else {
+            clearErrors(jobPositionInput);
+        }
+
+        if (!contract) {
+            showError(jobContractInput, 'Le type de contrat est requis');
+            isValid = false;
+        } else {
+            clearErrors(jobContractInput);
+        }
+
+        if (!location) {
+            showError(jobLocationInput, 'La localisation est requise');
+            isValid = false;
+        } else {
+            clearErrors(jobLocationInput);
+        }
+
+        if (!role) {
+            showError(jobRoleInput, 'Le rôle est requis');
+            isValid = false;
+        } else {
+            clearErrors(jobRoleInput);
+        }
+
+        if (!level) {
+            showError(jobLevelInput, 'Le niveau est requis');
+            isValid = false;
+        } else {
+            clearErrors(jobLevelInput);
+        }
+
+        if (!skills) {
+            showError(jobSkillsInput, 'Au moins une compétence est requise');
+            isValid = false;
+        } else {
+            clearErrors(jobSkillsInput);
+        }
+
+        if (!description) {
+            showError(jobDescriptionInput, 'La description est requise');
+            isValid = false;
+        } else {
+            clearErrors(jobDescriptionInput);
+        }
+
+        return isValid;
+
     };
 
     // ------------------------------------
@@ -205,6 +314,12 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     const saveProfile = () => {
         // TODO: Implement profile saving
+        try {
+            localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(userProfile));
+            console.log('Profile saved:', userProfile);
+        } catch (error) {
+            console.error('Error saving profile:', error);
+        }
     };
 
     /**
@@ -213,12 +328,37 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     const loadProfile = () => {
         // TODO: Implement profile loading
+        try {
+            const saved = localStorage.getItem(PROFILE_STORAGE_KEY);
+
+            if (saved) {
+                userProfile = JSON.parse(saved);
+
+                if (profileNameInput) {
+                    profileNameInput.value = userProfile.name || '';
+                }
+                if (profilePositionInput) {
+                    profilePositionInput.value = userProfile.position || '';
+                }
+
+                if (userProfile.skills && userProfile.skills.length > 0) {
+                    renderProfileSkills();
+                }
+
+                console.log('✅ Profile loaded from localStorage:', userProfile);
+            } else {
+                console.log('ℹ️ No saved profile found');
+            }
+        } catch (error) {
+            console.error('Error loading profile:', error);
+            userProfile = { name: '', position: '', skills: [] };
+        }
     };
 
     /**
-     * Renders profile skills list
-     * @function renderProfileSkills
-     */
+ * Renders profile skills list
+ * @function renderProfileSkills
+ */
     const renderProfileSkills = () => {
         // TODO: Implement skills rendering
         // Use this HTML template for each skill:
@@ -226,6 +366,35 @@ document.addEventListener('DOMContentLoaded', () => {
         //     <span>${skill}</span>
         //     <button class="profile-skill-remove" aria-label="Remove skill ${skill}">✕</button>
         //  </li>`
+        // Clear existing skills
+        // Clear existing skills
+        profileSkillsList.innerHTML = '';
+
+        if (!userProfile.skills || userProfile.skills.length === 0) {
+            profileSkillsList.innerHTML = '<li class="empty-message">Aucune compétence ajoutée</li>';
+            return;
+        }
+
+        userProfile.skills.forEach(skill => {
+            const skillItem = document.createElement('li');
+            skillItem.className = 'profile-skill-tag';
+            skillItem.dataset.skill = skill;
+
+            skillItem.innerHTML = `
+            <span>${skill}</span>
+            <button class="profile-skill-remove" aria-label="Remove skill ${skill}">✕</button>
+        `;
+
+            const removeBtn = skillItem.querySelector('.profile-skill-remove');
+
+            removeBtn.addEventListener('click', () => {
+                userProfile.skills = userProfile.skills.filter(s => s !== skill);
+                saveProfile();
+                renderProfileSkills();
+            });
+
+            profileSkillsList.appendChild(skillItem);
+        });
     };
 
     /**
@@ -234,6 +403,17 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     const renderProfileForm = () => {
         // TODO: Populate form fields with saved profile data
+        if (profileNameInput) {
+            profileNameInput.value = userProfile.name || '';
+        }
+
+        if (profilePositionInput) {
+            profilePositionInput.value = userProfile.position || '';
+        }
+
+        if (userProfile.skills && userProfile.skills.length > 0) {
+            renderProfileSkills();
+        }
     };
 
     /**
@@ -247,6 +427,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Validate form
         // 3. Save profile data
         // 4. Update filters if needed
+        e.preventDefault(); // Empêche la soumission classique
+        if (!validateProfileForm()) return;
+        userProfile.name = profileNameInput.value.trim();
+        userProfile.position = profilePositionInput.value.trim();
+
+        saveProfile();
+
+        renderProfileSkills();
+
+        alert('✅ Profil enregistré avec succès !');
+
     };
 
     /**
@@ -260,6 +451,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Get skill value
         // 3. Add to profile if not duplicate
         // 4. Re-render skills and apply filters
+        e.preventDefault();
+
+        const skill = skillInput.value.trim();
+        if (!skill || userProfile.skills.includes(skill)) return;
+
+        userProfile.skills.push(skill);
+        saveProfile();
+        renderProfileSkills();
+        skillInput.value = '';
     };
 
     /**
@@ -273,6 +473,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Get skill name
         // 3. Remove from profile
         // 4. Re-render and apply filters
+        const btn = e.target.closest('.profile-skill-remove');
+        if (!btn) return;
+
+        const li = btn.closest('.profile-skill-tag');
+        const skill = li.dataset.skill; 
+
+        userProfile.skills = userProfile.skills.filter(s => s !== skill); 
+        saveProfile();
+
+        renderProfileSkills();
     };
 
     // ------------------------------------
