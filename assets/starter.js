@@ -97,30 +97,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const cachedJobs = localStorage.getItem(ALL_JOBS_KEY);
-
             if (cachedJobs) {
                 allJobs = JSON.parse(cachedJobs);
-                console.log('Loaded jobs from cache:', allJobs.length);
+                console.log('Loaded jobs from localStorage:', allJobs.length);
                 return;
             }
 
-            console.log('No cached data found, fetching from file...');
+            console.log('No cached data found, fetching from server...');
             const response = await fetch('./assets/data/data.json');
 
             if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
             allJobs = await response.json();
-            allJobs = allJobs.map(job => ({
-                ...job,
-                id: typeof job.id === 'number' ? job.id : parseInt(job.id)
-            }));
 
             saveAllJobs();
             console.log(`Fetched and saved ${allJobs.length} jobs to localStorage`);
 
         } catch (error) {
             console.error("Error loading data.json:", error);
-            jobListingsContainer.innerHTML = '<p class="job-listings__empty">Erreur de chargement des données.</p>';
+            jobListingsContainer.innerHTML = '<p class="job-listings__empty">Error loading job data.</p>';
             allJobs = [];
         }
     };
@@ -133,10 +128,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // TODO: Implement localStorage save functionality
         try {
             localStorage.setItem(ALL_JOBS_KEY, JSON.stringify(allJobs));
-            console.log(`Saved ${allJobs.length} jobs to localStorage`);
+            console.log('All jobs saved to localStorage');
         } catch (error) {
             console.error('Error saving to localStorage:', error);
-            alert('Erreur lors de la sauvegarde des données');
         }
     };
 
@@ -182,10 +176,9 @@ document.addEventListener('DOMContentLoaded', () => {
             input.classList.remove('has-error');
 
             const err = input.nextElementSibling;
-
             if (err && err.classList.contains('form-error')) {
-                err.style.display = "none";
                 err.textContent = '';
+                err.style.display = 'none';
             }
         });
     };
@@ -248,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const description = jobDescriptionInput.value.trim();
 
         if (!company) {
-            showError(jobCompanyInput, "Le nom de l'entreprise est requis");
+            showError(jobCompanyInput, 'Le nom de l entreprise est requis');
             isValid = false;
         }
 
@@ -319,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (saved) {
                 userProfile = JSON.parse(saved);
-                console.log('Profile loaded:', userProfile);
+                console.log('Profile loaded from localStorage:', userProfile);
             } else {
                 console.log('No saved profile found');
             }
@@ -385,7 +378,9 @@ document.addEventListener('DOMContentLoaded', () => {
             profilePositionInput.value = userProfile.position || '';
         }
 
-        renderProfileSkills();
+        if (userProfile.skills && userProfile.skills.length > 0) {
+            renderProfileSkills();
+        }
     };
 
     /**
@@ -410,8 +405,11 @@ document.addEventListener('DOMContentLoaded', () => {
         userProfile.position = profilePositionInput.value.trim();
 
         saveProfile();
+
         renderProfileSkills();
+
         applyAllFilters();
+
         alert('Profil enregistré avec succès !');
     };
 
@@ -431,7 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
 
         const skill = skillInput.value.trim();
-        if (!skill) return;
+        if (!skill) return; 
 
         if (userProfile.skills.includes(skill)) {
             alert('Cette compétence existe déjà !');
@@ -442,8 +440,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         saveProfile();
         renderProfileSkills();
-        skillInput.value = '';
-        applyAllFilters();
+        skillInput.value = ''; 
+        applyAllFilters(); 
     };
 
     // ------------------------------------
@@ -474,15 +472,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const saved = localStorage.getItem(FAVORITES_STORAGE_KEY);
             if (saved) {
                 favoriteJobIds = JSON.parse(saved);
-                // Ensure all IDs are numbers for consistent comparison
-                // Filter out any null, undefined, or NaN values
-                favoriteJobIds = favoriteJobIds
-                    .map(id => typeof id === 'number' ? id : parseInt(id))
-                    .filter(id => !isNaN(id) && id !== null && id !== undefined);
-
-                // Save cleaned array back to localStorage
-                saveFavorites();
-                console.log('Favorites loaded and cleaned:', favoriteJobIds);
+                console.log('Favorites loaded:', favoriteJobIds);
             }
         } catch (error) {
             console.error('Error loading favorites:', error);
@@ -495,7 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * @function renderFavoritesCount
      */
     const renderFavoritesCount = () => {
-        // TODO: Implement favorites count update
+        // TODO: Update favorites count in tab
         if (favoritesCount) {
             favoritesCount.textContent = `(${favoriteJobIds.length})`;
         }
@@ -510,16 +500,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Filter jobs by favorite IDs
         // 2. Use createJobCardHTML for each job
         // 3. Show empty message if no favorites
-
+        
         const favoriteJobs = allJobs.filter(job => favoriteJobIds.includes(job.id));
 
         if (favoriteJobs.length === 0) {
-            favoriteJobsContainer.innerHTML = '<p class="job-listings__empty">Aucune offre favorite pour le moment.</p>';
+            favoriteJobsContainer.innerHTML = `
+                <p class="job-listings__empty">Aucune offre favorite pour le moment.</p>`;
             return;
         }
-
+        
         favoriteJobsContainer.innerHTML = favoriteJobs.map(createJobCardHTML).join('');
     };
+
 
     /**
      * Toggles job favorite status
@@ -532,29 +524,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Add or remove from favorites array
         // 3. Save to localStorage
         // 4. Update UI
-
-        // Ensure jobId is a number for consistent comparison
-        const numericId = typeof jobId === 'number' ? jobId : parseInt(jobId);
-
-        // Validate the ID
-        if (isNaN(numericId) || numericId === null || numericId === undefined) {
-            console.error('Invalid job ID:', jobId);
-            return;
-        }
-
-        const index = favoriteJobIds.indexOf(numericId);
+        
+        const index = favoriteJobIds.indexOf(jobId);
 
         if (index > -1) {
-            // Remove from favorites
             favoriteJobIds.splice(index, 1);
-            console.log(`Removed job ${numericId} from favorites`);
         } else {
-            // Add to favorites
-            favoriteJobIds.push(numericId);
-            console.log(`Added job ${numericId} to favorites`);
+            favoriteJobIds.push(jobId);
         }
 
         saveFavorites();
+        
         renderFavoritesCount();
 
         const activeTab = document.querySelector('.tab-item--active');
@@ -576,19 +556,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const setupTabs = () => {
         // TODO: Implement tab switching logic
 
-        if (!tabsNav) return;
-
         tabsNav.addEventListener('click', (e) => {
             const clickedTab = e.target.closest('.tab-item');
             if (!clickedTab) return;
-
-            tabsNav.querySelectorAll('.tab-item').forEach(tab =>
-                tab.classList.remove('tab-item--active')
-            );
+            
+            tabsNav.querySelectorAll('.tab-item').forEach(tab => tab.classList.remove('tab-item--active'));
 
             clickedTab.classList.add('tab-item--active');
+            
             const tabId = clickedTab.dataset.tab;
-
+            
             tabContents.forEach(content => {
                 content.classList.toggle('tab-content--active', content.id === `tab-${tabId}`);
             });
@@ -617,17 +594,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('modal-position').textContent = job.position;
         document.getElementById('modal-company').textContent = job.company;
         document.getElementById('modal-description').textContent = job.description;
-        document.getElementById('modal-meta').innerHTML = `
-            <li>${job.postedAt}</li>
-            <li>${job.contract}</li>
-            <li>${job.location}</li>
-        `;
+        document.getElementById('modal-meta').innerHTML = `<li>${job.postedAt}</li><li>${job.contract}</li><li>${job.location}</li>`;
 
         const tags = [job.role, job.level, ...(job.skills || [])];
-        document.getElementById('modal-tags').innerHTML = tags
-            .map(tag => `<span class="job-card__tag">${tag}</span>`)
-            .join('');
-
+        document.getElementById('modal-tags').innerHTML = tags.map(tag => `<span class="job-card__tag">${tag}</span>`).join('');
+        
         viewModal.style.display = 'flex';
     };
 
@@ -653,7 +624,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const job = allJobs.find(j => j.id === jobId);
             if (!job) return;
 
-            manageModalTitle.textContent = "Modifier l'offre";
+            manageModalTitle.textContent = 'Modifier l offre';
 
             jobIdInput.value = job.id;
             jobCompanyInput.value = job.company;
@@ -667,8 +638,8 @@ document.addEventListener('DOMContentLoaded', () => {
             jobDescriptionInput.value = job.description;
         } else {
             manageModalTitle.textContent = 'Ajouter une offre';
-            manageJobForm.reset();
-            jobIdInput.value = '';
+            manageJobForm.reset(); 
+            jobIdInput.value = ''; 
         }
 
         manageModal.style.display = 'flex';
@@ -712,10 +683,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         manageJobsList.innerHTML = allJobs.map(job => `
             <li class="manage-job-item" data-job-id="${job.id}">
-                <img src="${job.logo}" 
-                     alt="" 
-                     class="job-card__logo" 
-                     style="position: static; width: 48px; height: 48px; border-radius: 5px;">
+                <img src="${job.logo || `https://api.dicebear.com/8.x/initials/svg?seed=${job.company}`}" alt="" class="job-card__logo" style="position: static; width: 48px; height: 48px; border-radius: 5px;">
                 <div class="manage-job-item__info">
                     <h4>${job.position}</h4>
                     <p>${job.company} - ${job.location}</p>
@@ -726,6 +694,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </li>
         `).join('');
+
+        const btnsDelete = document.getElementsByClassName("btn-delete");
+        const btnsEdit = document.getElementsByClassName("btn-edit");
+
+        for (let btn of btnsDelete) {
+            btn.addEventListener("click", () => {
+                const jobId = parseInt(btn.parentElement.parentElement.getAttribute("data-job-id"));
+                if (confirm("Êtes-vous sûr de vouloir supprimer cette offre ?")) {
+                    const jobIndex = allJobs.findIndex(job => job.id === jobId);
+                    if (jobIndex > -1) {
+                        allJobs.splice(jobIndex, 1);
+                        saveAllJobs(); 
+                    }
+
+                    const favIndex = favoriteJobIds.indexOf(jobId);
+                    if (favIndex > -1) {
+                        favoriteJobIds.splice(favIndex, 1);
+                        saveFavorites(); 
+                        renderFavoritesCount();
+                    }
+
+                    renderManageList();
+                    applyAllFilters();
+                }
+            });
+        }
+
+        for (let btn of btnsEdit) {
+            btn.addEventListener("click", () => {
+                const jobId = parseInt(btn.parentElement.parentElement.getAttribute("data-job-id"));
+                openManageModal(jobId);
+            });
+        }
     };
 
     /**
@@ -741,18 +742,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // 4. Add new job or update existing
         // 5. Save to localStorage
         // 6. Update UI and close modal
-
+        
         e.preventDefault();
 
         clearErrors(manageJobForm);
 
         if (!validateJobForm()) return;
 
-        const isEditing = jobIdInput.value.trim() !== '';
-        const jobId = isEditing ? parseInt(jobIdInput.value.trim()) : Date.now();
-
+        const existingId = jobIdInput.value.trim();
+        
         const jobData = {
-            id: jobId,
+            id: existingId ? parseInt(existingId) : Date.now(), 
             company: jobCompanyInput.value.trim(),
             position: jobPositionInput.value.trim(),
             logo: jobLogoInput.value.trim(),
@@ -760,17 +760,17 @@ document.addEventListener('DOMContentLoaded', () => {
             location: jobLocationInput.value.trim(),
             role: jobRoleInput.value.trim(),
             level: jobLevelInput.value.trim(),
-            skills: jobSkillsInput.value.split(',').map(s => s.trim()).filter(s => s),
+            skills: jobSkillsInput.value.split(",").map(s => s.trim()).filter(s => s),
             description: jobDescriptionInput.value.trim(),
-            new: !isEditing,
+            new: false,
             featured: false,
-            postedAt: new Date().toLocaleDateString('fr-FR')
+            postedAt: existingId ? (allJobs.find(j => j.id === parseInt(existingId))?.postedAt || new Date().toLocaleDateString()) : new Date().toLocaleDateString()
         };
 
-        const jobIndex = allJobs.findIndex(job => job.id === jobId);
+        const findingID = allJobs.findIndex(job => job.id === jobData.id);
 
-        if (jobIndex > -1) {
-            allJobs[jobIndex] = jobData;
+        if (findingID > -1) {
+            allJobs[findingID] = jobData;
             alert('Offre modifiée avec succès !');
         } else {
             allJobs.unshift(jobData);
@@ -794,48 +794,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Get job ID
         // 3. For edit: open manage modal with job data
         // 4. For delete: confirm and remove job
-
-        const deleteBtn = e.target.closest('.btn-delete');
-        const editBtn = e.target.closest('.btn-edit');
-
-        if (deleteBtn) {
-            const jobItem = deleteBtn.closest('.manage-job-item');
-            const jobId = parseInt(jobItem.dataset.jobId);
-
-            if (confirm("Êtes-vous sûr de vouloir supprimer cette offre ?")) {
-                // Remove job from array
-                const jobIndex = allJobs.findIndex(job => job.id === jobId);
-                if (jobIndex > -1) {
-                    allJobs.splice(jobIndex, 1);
-                    saveAllJobs(); // Save immediately to localStorage
-                }
-
-                // Remove from favorites if it exists
-                const favoriteIndex = favoriteJobIds.indexOf(jobId);
-                if (favoriteIndex > -1) {
-                    favoriteJobIds.splice(favoriteIndex, 1);
-                    saveFavorites(); // Save immediately to localStorage
-                    renderFavoritesCount();
-                }
-
-                // Update all UI components
-                renderManageList();
-                applyAllFilters();
-
-                const activeTab = document.querySelector('.tab-item--active');
-                if (activeTab && activeTab.dataset.tab === 'favorites') {
-                    renderFavoriteJobs();
-                }
-
-                console.log('Job deleted successfully and localStorage updated');
-            }
-        }
-
-        if (editBtn) {
-            const jobItem = editBtn.closest('.manage-job-item');
-            const jobId = parseInt(jobItem.dataset.jobId);
-            openManageModal(jobId);
-        }
     };
 
     // ------------------------------------
@@ -902,11 +860,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (manualFilters.length === 0) {
             filterTagsContainer.innerHTML = '';
-            if (filterBar) filterBar.style.display = 'none';
             return;
         }
 
-        if (filterBar) filterBar.style.display = 'flex';
         filterTagsContainer.innerHTML = manualFilters.map(tag => `
             <div class="filter-bar__tag" data-tag="${tag}">
                 <span class="filter-bar__tag-name">${tag}</span>
@@ -924,12 +880,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderStats = (matchCount, totalCount) => {
         // TODO: Implement stats rendering
 
-        const hasFilters = manualFilters.length > 0 || userProfile.skills.length > 0 || (searchInput && searchInput.value.trim());
+        const hasFilters = manualFilters.length > 0 || userProfile.skills.length > 0 || searchInput.value.trim();
 
         if (hasFilters) {
-            statsCounter.innerHTML = `<p>${matchCount} offre${matchCount > 1 ? 's trouvées' : ' trouvée'} sur ${totalCount}</p>`;
+            statsCounter.innerHTML = `<p>${matchCount} offre trouvée sur ${totalCount}</p>`;
         } else {
-            statsCounter.innerHTML = `<p>${totalCount} offre${totalCount > 1 ? 's disponibles' : ' disponible'}</p>`;
+            statsCounter.innerHTML = `<p>${totalCount} offre disponible</p>`;
         }
     };
 
@@ -948,7 +904,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 3. Filter jobs by tags and search term
         // 4. Update all UI components
 
-        const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        const searchTerm = searchInput.value.toLowerCase().trim();
 
         const allFilters = [...new Set([...userProfile.skills, ...manualFilters])];
 
@@ -987,22 +943,24 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Handle favorite button clicks
         // 3. Handle card clicks (open modal)
 
+       
         const favoriteBtn = e.target.closest('.job-card__favorite-btn');
         if (favoriteBtn) {
-            e.stopPropagation();
+            e.stopPropagation(); 
             const jobId = parseInt(favoriteBtn.dataset.jobId);
             toggleFavorite(jobId);
-            return;
+            return; 
         }
 
+       
         const tag = e.target.closest('.job-card__tag');
         if (tag) {
-            e.stopPropagation();
+            e.stopPropagation(); // Prevent card click event
             const tagName = tag.dataset.tag;
 
             if (!manualFilters.includes(tagName)) {
                 manualFilters.push(tagName);
-                applyAllFilters();
+                applyAllFilters(); // Re-filter jobs
             }
             return;
         }
@@ -1044,7 +1002,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 3. Apply filters
 
         manualFilters = [];
-        if (searchInput) searchInput.value = '';
+        searchInput.value = '';
         applyAllFilters();
     };
 
@@ -1074,41 +1032,36 @@ document.addEventListener('DOMContentLoaded', () => {
         renderProfileSkills();
         renderFavoritesCount();
         setupTabs();
-        applyAllFilters();
+        applyAllFilters(); 
 
-        // Event Listeners - Profile
-        if (profileForm) profileForm.addEventListener('submit', handleProfileSave);
-        if (skillInput) skillInput.addEventListener('keydown', handleSkillAdd);
 
-        // Event Listeners - View Modal
-        if (viewModalCloseBtn) viewModalCloseBtn.addEventListener('click', closeViewModal);
-        if (viewModal) {
-            viewModal.addEventListener('click', (e) => {
-                if (e.target === viewModal) closeViewModal();
-            });
-        }
+        // Profile events
+        profileForm.addEventListener('submit', handleProfileSave);
+        skillInput.addEventListener('keydown', handleSkillAdd);
 
-        // Event Listeners - Manage Modal
-        if (manageModalCloseBtn) manageModalCloseBtn.addEventListener('click', closeManageModal);
-        if (manageModal) {
-            manageModal.addEventListener('click', (e) => {
-                if (e.target === manageModal) closeManageModal();
-            });
-        }
+        // Modal events
+        viewModalCloseBtn.addEventListener('click', closeViewModal);
+        viewModal.addEventListener('click', (e) => {
+            if (e.target === viewModal) closeViewModal();
+        });
+        manageModalCloseBtn.addEventListener('click', closeManageModal);
+        manageModal.addEventListener('click', (e) => {
+            if (e.target === manageModal) closeManageModal();
+        });
 
-        // Event Listeners - Job Management
-        if (addNewJobBtn) addNewJobBtn.addEventListener('click', () => openManageModal());
-        if (manageJobForm) manageJobForm.addEventListener('submit', handleManageFormSubmit);
-        if (manageJobsList) manageJobsList.addEventListener('click', handleManageListClick);
+        // Management events
+        addNewJobBtn.addEventListener('click', () => openManageModal());
+        manageJobForm.addEventListener('submit', handleManageFormSubmit);
+        manageJobsList.addEventListener('click', handleManageListClick);
 
-        // Event Listeners - Search & Filter
-        if (searchInput) searchInput.addEventListener('input', applyAllFilters);
-        if (clearFiltersBtn) clearFiltersBtn.addEventListener('click', handleClearFilters);
-        if (filterTagsContainer) filterTagsContainer.addEventListener('click', handleFilterBarClick);
+        // Filter events
+        searchInput.addEventListener('input', applyAllFilters);
+        clearFiltersBtn.addEventListener('click', handleClearFilters);
+        filterTagsContainer.addEventListener('click', handleFilterBarClick);
 
-        // Event Listeners - Job Listings
-        if (jobListingsContainer) jobListingsContainer.addEventListener('click', handleJobListClick);
-        if (favoriteJobsContainer) favoriteJobsContainer.addEventListener('click', handleJobListClick);
+        // Job list events
+        jobListingsContainer.addEventListener('click', handleJobListClick);
+        favoriteJobsContainer.addEventListener('click', handleJobListClick);
 
         console.log('Application initialized successfully!');
     };
